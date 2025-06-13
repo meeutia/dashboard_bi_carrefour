@@ -2,6 +2,12 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+from prophet import Prophet
+from prophet.plot import plot_plotly
+
+from sqlalchemy import create_engine
+
+engine = create_engine("postgresql+psycopg2://postgres:root@localhost/carrefour")
 
 # Pastikan data sudah ada dalam session state
 if 'data' not in st.session_state:
@@ -22,10 +28,6 @@ with open('styles.css') as f:
 # Convert date columns
 main_data['full_date'] = pd.to_datetime(main_data['full_date'])
 
-# Header
-st.markdown('<div class="role-header">DASHBOARD ANALITIK</div>', unsafe_allow_html=True)
-
-st.markdown(f'<div class="welcome-message">Selamat datang, Operator</div>', unsafe_allow_html=True)
 
 categories = ['Semua'] + list(main_data['category'].dropna().unique())
 selected_category = st.sidebar.selectbox("Pilih Kategori", categories)
@@ -42,18 +44,22 @@ if selected_category != 'Semua':
 if selected_region != 'Semua':
     filtered_data = filtered_data[filtered_data['region'] == selected_region]
 
-#################
-# Simulasi stok barang (karena tidak ada di database)
+st.markdown("## Key Performance Indicators")
+
 product_stock = filtered_data.groupby('product_name').agg({
     'quantity': 'sum',
     'sales': 'sum'
 }).reset_index()
 
+total_orders = filtered_data['order_id'].nunique()
+
 # KPI Cards
 col1, col2 = st.columns(2)
     
 total_products = len(product_stock)
-    
+
+
+
 with col1:
         st.markdown(f"""
         <div class="kpi-operational">
@@ -65,8 +71,8 @@ with col1:
 with col2:
         st.markdown(f"""
         <div class="kpi-operational">
-            <div class="kpi-label">Stok Rendah</div>
-            <div class="kpi-value">{total_products:,}</div>
+            <div class="kpi-label">Total Order</div>
+            <div class="kpi-value">{total_orders:,}</div>
         </div>
         """, unsafe_allow_html=True)
     
@@ -77,25 +83,93 @@ col1, col2 = st.columns(2)
 with col1:
     st.markdown('<div class="chart-container">', unsafe_allow_html=True)
     st.markdown("### Stok Barang (model)")
-    
+    query = """
+
+   SELECT 
+    dp.product_id, 
+    dp.product_name, 
+    DATE_TRUNC('month', dd.full_date) AS bulan, 
+    SUM(fs.sales) AS total_penjualan, 
+    AVG(fs.quantity) AS rata_rata_stok
+FROM fact_sales fs
+LEFT JOIN dim_product dp ON fs.product_id = dp.product_id
+LEFT JOIN dim_date dd ON fs.order_date_key = dd.date_key
+GROUP BY dp.product_id, dp.product_name, DATE_TRUNC('month', dd.full_date)
+ORDER BY dp.product_id, bulan;
+
+
+        """
+    # df = pd.read_sql(query, engine)
+    # import pandas as pd
+    # from sklearn.ensemble import RandomForestRegressor
+
+    # # Load data hasil query ke df
+    # df['bulan'] = pd.to_datetime(df['bulan'])
+    # df['bulan_num'] = df['bulan'].dt.month + (df['bulan'].dt.year - df['bulan'].dt.year.min()) * 12
+
+    # # Simpan hasil prediksi
+    # hasil_prediksi = []
+
+    # # Loop setiap produk
+    # for produk_id in df['product_id'].unique():
+    #     df_produk = df[df['product_id'] == produk_id].copy()
+
+    #     if len(df_produk) < 4:
+    #         # Skip produk dengan data terlalu sedikit
+    #         continue
+
+    #     X = df_produk[['bulan_num', 'total_penjualan']]
+    #     y = df_produk['rata_rata_stok']
+
+    #     # Train model
+    #     model = RandomForestRegressor()
+    #     model.fit(X, y)
+
+    #     # Prediksi bulan depan
+    #     bulan_terakhir = df_produk['bulan_num'].max()
+    #     penjualan_terakhir = df_produk[df_produk['bulan_num'] == bulan_terakhir]['total_penjualan'].values[0]
+    #     prediksi_stok = model.predict([[bulan_terakhir + 1, penjualan_terakhir]])[0]
+
+    #     hasil_prediksi.append({
+    #         'product_id': produk_id,
+    #         'product_name': df_produk['product_name'].iloc[0],
+    #         'prediksi_stok_bulan_depan': round(prediksi_stok, 2)
+    #     })
+
+    # # Tampilkan hasil
+    # df_hasil = pd.DataFrame(hasil_prediksi)
+    # st.dataframe(df_hasil)
+
+
+
     
 with col2:
-    st.markdown('<div class="chart-container">', unsafe_allow_html=True)
-    st.markdown("### 🏪 Penjualan per Region")
-    
-    region_sales = filtered_data.groupby('region')['sales'].sum().reset_index()
-    
-    fig_heatmap = px.treemap(
-        region_sales,
-        path=['region'],
-        values='sales',
-        color='sales',
-        color_continuous_scale=[[0, '#1e3c72'], [1, '#ffd700']],
-        title="Heatmap Penjualan per Region"
-    )
-    fig_heatmap.update_layout(height=400)
-    st.plotly_chart(fig_heatmap, use_container_width=True)
-    st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown('<div class="chart-container">', unsafe_allow_html=True)
+
+        st.markdown("### Penjualan per Region")
+        region_sales = filtered_data.groupby('region')['sales'].sum().reset_index()
+        region_sales['sales'] = region_sales['sales'].round().astype(int)
+        
+        fig_bar = px.bar(
+            region_sales,
+            x='region',
+            y='sales',
+            color='sales',
+            labels={'sales': 'Total Penjualan', 'region': 'Region'},
+            color_continuous_scale=[[0, '#1e3c72'], [1, '#ffd700']],
+
+        )
+        
+        fig_bar.update_layout(
+            height=400,
+            xaxis_title='Region',
+            yaxis_title='Total Penjualan',
+            showlegend=False
+        )
+        
+        st.plotly_chart(fig_bar, use_container_width=True)
+        
+        st.markdown('</div>', unsafe_allow_html=True)
 
 # Additional charts
 col1, col2 = st.columns(2)
@@ -149,63 +223,22 @@ with col1:
 
 with col2:
     st.markdown('<div class="chart-container">', unsafe_allow_html=True)
-    st.markdown("### Produk Terlaris & Terendah")
-    
-    # Buat data untuk tabel produk performance
-    product_performance = filtered_data.groupby('product_name').agg({
-        'quantity': 'sum',
-        'sales': 'sum'
-    }).reset_index()
-    
-    # Ambil top 5 dan bottom 5
-    top_5 = product_performance.nlargest(5, 'quantity').copy()
-    bottom_5 = product_performance.nsmallest(5, 'quantity').copy()
-    
-    # Buat ranking dari 1 sampai total produk
-    total_products = len(product_performance)
-    product_performance_sorted = product_performance.sort_values('quantity', ascending=False).reset_index(drop=True)
-    product_performance_sorted['Ranking'] = range(1, len(product_performance_sorted) + 1)
-    
-    # Ambil ranking untuk top 5
-    top_5_with_rank = product_performance_sorted.head(5)
-    
-    # Ambil ranking untuk bottom 5
-    bottom_5_with_rank = product_performance_sorted.tail(5)
-    
-    # Gabungkan
-    combined_table = pd.concat([top_5_with_rank, bottom_5_with_rank])
-    
-    # Format tabel
-    display_table = combined_table[['Ranking', 'product_name', 'quantity', 'sales']].copy()
-    display_table.columns = ['Rank', 'Nama Produk', 'Qty Terjual', 'Total Sales']
-    
-    # Format angka
-    display_table['Qty Terjual'] = display_table['Qty Terjual'].apply(lambda x: f"{x:,}")
-    display_table['Total Sales'] = display_table['Total Sales'].apply(lambda x: f"${x:,.2f}")
-    
-    # Styling untuk tabel
-    def highlight_ranking(row):
-        rank = row['Rank']
-        if rank <= 5:  
-            return ['background-color: #c3d4f5; color: #1e3c72'] * len(row)
-        else:  # Bottom 5 - merah muda
-            return ['background-color: #f8d7da; color: #721c24'] * len(row)
-    
-    styled_table = display_table.style.apply(highlight_ranking, axis=1)
-    
-    # Tampilkan tabel
-    st.dataframe(
-        styled_table,
-        use_container_width=True,
-        hide_index=True,
-        height=350
+    st.markdown("### Distribusi Penjualan Berdasarkan Kategori Produk")
+
+    category_sales = (
+        filtered_data.groupby('category')['sales']
+        .sum()
+        .reset_index()
+        .sort_values(by='sales', ascending=False)
     )
-    
-    # Tambahkan informasi ringkas
-    st.markdown("""
-    <div style='font-size: 12px; color: #666; margin-top: 10px;'>
-    💡 <strong>Info:</strong> Tabel menampilkan 5 produk terlaris (ranking 1-5) dan 5 produk dengan penjualan terendah berdasarkan quantity terjual.
-    </div>
-    """, unsafe_allow_html=True)
-    
+
+    fig = px.pie(
+        category_sales,
+        names='category',
+        values='sales',
+        hole=0.4,
+        color_discrete_sequence=['#1f77b4', '#ffcc00']  # Biru dan Kuning
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
     st.markdown('</div>', unsafe_allow_html=True)

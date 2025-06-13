@@ -25,10 +25,7 @@ with open('styles.css') as f:
 # Convert date columns
 main_data['full_date'] = pd.to_datetime(main_data['full_date'])
 
-# Header
-st.markdown('<div class="role-header">DASHBOARD ANALITIK</div>', unsafe_allow_html=True)
 
-st.markdown(f'<div class="welcome-message">Selamat datang, Data Analis</div>', unsafe_allow_html=True)
 # Filters
 st.sidebar.markdown("## 🔍 Filter Data")
 
@@ -116,6 +113,8 @@ def calculate_churn_rate(data):
     churn_rate = (len(churned_customers) / total_customers) * 100
     return churn_rate
 
+st.markdown("## Key Performance Indicators")
+
 # KPI Calculations
 avg_discount = filtered_data['discount'].mean() * 100
 conversion_rate = calculate_conversion_rate(filtered_data)
@@ -186,7 +185,6 @@ with st.expander("Detail Metrics"):
 col1, col2 = st.columns(2)
 
 with col1:
-    st.markdown('<div class="chart-container">', unsafe_allow_html=True)
     st.markdown("### Efektivitas Diskon")
 
     # Buat bins untuk diskon
@@ -233,28 +231,17 @@ with col1:
 
     # Update layout untuk dual axis
     fig_discount.update_layout(
-        title="Efektivitas Diskon: Sales vs Profit Margin",
+       
         xaxis_title="Range Diskon",
         yaxis=dict(title="Total Sales ($)", side="left"),
         yaxis2=dict(title="Profit Margin (%)", side="right", overlaying="y"),
-        legend=dict(x=0.01, y=0.99)
+        legend=dict(x=0.7, y=1.3)
     )
 
     fig_discount.update_layout(height=400, template='plotly_white')
     st.plotly_chart(fig_discount, use_container_width=True)
 
-    # Insights for Bar Chart Binned
-    st.markdown("**💡 Insights:**")
-    best_range_idx = profit_margin.idxmax()
-    best_range = discount_analysis.iloc[best_range_idx]['discount_range']
-    best_margin = profit_margin.iloc[best_range_idx]
-
-    st.markdown(f"• Range diskon **{best_range}** memberikan profit margin tertinggi: **{best_margin:.1f}%**")
-    st.markdown(f"• Total transaksi dengan diskon: **{discount_analysis['total_orders'].sum():,}** orders")
-    st.markdown('</div>', unsafe_allow_html=True)
-    
 with col2:
-    st.markdown('<div class="chart-container">', unsafe_allow_html=True)
     st.markdown("### Segmentasi Pelanggan")
     
     segment_data = filtered_data.groupby('segment').agg({
@@ -276,7 +263,6 @@ with col2:
 col1, col2 = st.columns(2)
 
 with col1:
-    st.markdown('<div class="chart-container">', unsafe_allow_html=True)
     st.markdown("### Pola Musiman")
     
     seasonal_data = filtered_data.groupby(filtered_data['full_date'].dt.month).agg({
@@ -299,7 +285,6 @@ with col1:
     st.markdown('</div>', unsafe_allow_html=True)
 
 with col2:
-    st.markdown('<div class="chart-container">', unsafe_allow_html=True)
     st.markdown("### Frekuensi Pembelian")
     
     # Histogram frekuensi pembelian per customer
