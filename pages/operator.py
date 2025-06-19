@@ -7,7 +7,8 @@ from prophet.plot import plot_plotly
 import matplotlib.pyplot as plt
 from datetime import timedelta
 from matplotlib.colors import LinearSegmentedColormap
-
+import pandas as pd
+from sklearn.ensemble import RandomForestRegressor
 
 from sqlalchemy import create_engine
 
@@ -366,8 +367,7 @@ query = """
 
         """
 df = pd.read_sql(query, engine)
-import pandas as pd
-from sklearn.ensemble import RandomForestRegressor
+
 
     # Load data hasil query ke df
 df['bulan'] = pd.to_datetime(df['bulan'])
