@@ -175,3 +175,191 @@
     box-shadow: 0 10px 20px rgba(0, 0, 0, 0.25);
     cursor: pointer;
 }
+
+/* Mengatur background secara keseluruhan */
+/* Mengatur tampilan main dan sidebar */
+
+
+
+/* Enhanced Streamlit Sidebar */
+/* ------------------------ */
+
+section[data-testid="stSidebar"] {
+    background: linear-gradient(135deg, #91b6fa 0%, #7f94b7 50%, #6a7fa8 100%) !important;
+    color: #ffffff;
+    padding: 30px;
+    border-radius: 40px;
+    height: 60vh;
+    box-shadow:
+        0 4px 20px 5px rgba(0, 0, 0, 0.5),
+        0 0 30px rgba(145, 182, 250, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    overflow-y: auto;
+    position: relative;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.4s ease-in-out;
+    animation: float-sidebar 5s ease-in-out infinite;
+    opacity: 1;
+}
+
+/* Animasi floating elegan */
+@keyframes float-sidebar {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-2px); }
+}
+
+/* Hidden Total Saat Sidebar Collapsed */
+body[data-testid="stAppViewContainer"] > div > div:first-child {
+    transition: all 0.5s ease-in-out;
+}
+
+body[data-testid="stAppViewContainer"] > div > div:first-child[aria-expanded="false"] {
+    transform: translateX(-100%) !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+}
+
+/* Overlay layering */
+section[data-testid="stSidebar"]::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(45deg,
+        rgba(255, 255, 255, 0.1) 0%,
+        rgba(255, 255, 255, 0.05) 50%,
+        rgba(255, 255, 255, 0.1) 100%);
+    border-radius: 40px;
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* Heading styling */
+section[data-testid="stSidebar"] h1,
+section[data-testid="stSidebar"] h2,
+section[data-testid="stSidebar"] h3 {
+    color: #ffffff !important;
+    font-weight: 600;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    margin-bottom: 20px;
+    position: relative;
+    z-index: 2;
+}
+
+/* Input fields */
+section[data-testid="stSidebar"] .stSelectbox,
+section[data-testid="stSidebar"] .stDateInput,
+section[data-testid="stSidebar"] .stNumberInput,
+section[data-testid="stSidebar"] .stTextInput {
+    background: rgba(255, 255, 255, 0.15) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    border-radius: 15px !important;
+    backdrop-filter: blur(5px);
+    transition: all 0.3s ease;
+    z-index: 2;
+}
+
+/* Input hover effect */
+section[data-testid="stSidebar"] .stSelectbox:hover,
+section[data-testid="stSidebar"] .stDateInput:hover,
+section[data-testid="stSidebar"] .stNumberInput:hover,
+section[data-testid="stSidebar"] .stTextInput:hover {
+    background: rgba(255, 255, 255, 0.25) !important;
+    border-color: rgba(255, 255, 255, 0.4) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 15px rgba(145, 182, 250, 0.3);
+}
+
+/* Buttons */
+section[data-testid="stSidebar"] .stButton button {
+    background: linear-gradient(135deg, #91b6fa 0%, #7f94b7 50%, #6a7fa8 100%) !important;
+    color: #ffffff !important;
+    border: none !important;
+    border-radius: 20px !important;
+    padding: 12px 24px !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+    transition: all 0.3s ease-in-out !important;
+    z-index: 2;
+}
+
+section[data-testid="stSidebar"] .stButton button:hover {
+        background: linear-gradient(135deg, #91b6fa 0%, #7f94b7 50%, #6a7fa8 100%) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 20px rgba(145, 182, 250, 0.4) !important;
+}
+
+/* Scrollbar */
+section[data-testid="stSidebar"]::-webkit-scrollbar {
+    width: 8px;
+}
+section[data-testid="stSidebar"]::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+}
+section[data-testid="stSidebar"]::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, #ffffff 0%, rgba(255, 255, 255, 0.7) 100%);
+    border-radius: 10px;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+}
+section[data-testid="stSidebar"]::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, #f0f8ff 0%, rgba(255, 255, 255, 0.9) 100%);
+}
+
+/* Text style */
+section[data-testid="stSidebar"] label,
+section[data-testid="stSidebar"] p,
+section[data-testid="stSidebar"] span {
+    color: #050e89 !important;
+    font-weight: 500;
+    font-size: 18px;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    z-index: 2;
+    margin-left: 3px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    section[data-testid="stSidebar"] {
+        height: 50vh;
+        padding: 20px;
+        border-radius: 25px;
+    }
+}
+
+
+.kpi-analytics {
+    border-radius: 15px;
+    padding: 20px;
+    text-align: center;
+    color: #ffffff;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease-in-out;
+    position: relative;
+    z-index: 2;
+}
+
+.kpi-label {
+    font-weight: 500;
+    margin-bottom: 8px;
+    color: #e0e0e0;
+}
+
+.kpi-value {
+    font-size: 40px;
+    font-weight: bold;
+    color: #e8ebf3;
+    animation: fadein 0.5s ease;
+}
+
+.kpi-change {
+    margin-top: 15px;
+    font-size: 18px;
+    color: #c0c0c0;
+}
+
+@keyframes fadein {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}

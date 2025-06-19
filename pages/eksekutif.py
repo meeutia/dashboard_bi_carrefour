@@ -30,10 +30,8 @@ main_data['full_date'] = pd.to_datetime(main_data['full_date'])
 
 
 # Filters
-# Sidebar untuk filter
 st.sidebar.markdown("## 🔍 Filter Data")
 
-# Filter tanggal
 date_range = st.sidebar.date_input(
     "Pilih Rentang Tanggal",
     value=[main_data['full_date'].min(), main_data['full_date'].max()],
@@ -41,51 +39,94 @@ date_range = st.sidebar.date_input(
     max_value=main_data['full_date'].max()
 )
 
-# Filter region
 regions = ['Semua'] + list(main_data['region'].dropna().unique())
 selected_region = st.sidebar.selectbox("Pilih Region", regions)
 
-# Filter kategori produk
 categories = ['Semua'] + list(main_data['category'].dropna().unique())
 selected_category = st.sidebar.selectbox("Pilih Kategori Produk", categories)
 
-# Filter segment customer
 segments = ['Semua'] + list(main_data['segment'].dropna().unique())
 selected_segment = st.sidebar.selectbox("Pilih Segment Customer", segments)
 
-# Apply filters
+# -------------------------------
+# Apply Filter
+# -------------------------------
 filtered_data = main_data.copy()
 
 if len(date_range) == 2:
+    start_date = pd.to_datetime(date_range[0])
+    end_date = pd.to_datetime(date_range[1])
     filtered_data = filtered_data[
-        (filtered_data['full_date'] >= pd.to_datetime(date_range[0])) &
-        (filtered_data['full_date'] <= pd.to_datetime(date_range[1]))
+        (filtered_data['full_date'] >= start_date) &
+        (filtered_data['full_date'] <= end_date)
     ]
+
+    # Data minggu sebelumnya
+    delta = end_date - start_date
+    prev_start = start_date - delta - timedelta(days=1)
+    prev_end = start_date - timedelta(days=1)
+    previous_data = main_data[
+        (main_data['full_date'] >= prev_start) &
+        (main_data['full_date'] <= prev_end)
+    ]
+else:
+    previous_data = pd.DataFrame()  # Empty fallback
 
 if selected_region != 'Semua':
     filtered_data = filtered_data[filtered_data['region'] == selected_region]
+    previous_data = previous_data[previous_data['region'] == selected_region]
 
 if selected_category != 'Semua':
     filtered_data = filtered_data[filtered_data['category'] == selected_category]
+    previous_data = previous_data[previous_data['category'] == selected_category]
 
 if selected_segment != 'Semua':
     filtered_data = filtered_data[filtered_data['segment'] == selected_segment]
+    previous_data = previous_data[previous_data['segment'] == selected_segment]
 
-# KPI Cards
-st.markdown("## Key Performance Indicators")
+# -------------------------------
+# KPI Calculation
+# -------------------------------
+def calculate_change(current, previous):
+    if previous == 0:
+        return 0
+    return ((current - previous) / previous) * 100
 
-col1, col2, col3, col4 = st.columns(4)
+def format_change(change):
+    arrow = "⬆️" if change > 0 else "⬇️" if change < 0 else "➡️"
+    return f"{arrow} {abs(change):.1f}%"
 
+# Current KPIs
 total_sales = filtered_data['sales'].sum()
 total_transactions = filtered_data['order_id'].nunique()
 total_profit = filtered_data['profit'].sum()
 avg_order_value = total_sales / total_transactions if total_transactions > 0 else 0
+
+# Previous KPIs
+prev_sales = previous_data['sales'].sum()
+prev_transactions = previous_data['order_id'].nunique()
+prev_profit = previous_data['profit'].sum()
+prev_avg_order = prev_sales / prev_transactions if prev_transactions > 0 else 0
+
+# Changes
+sales_change = calculate_change(total_sales, prev_sales)
+transactions_change = calculate_change(total_transactions, prev_transactions)
+profit_change = calculate_change(total_profit, prev_profit)
+aov_change = calculate_change(avg_order_value, prev_avg_order)
+
+# -------------------------------
+# Tampilkan KPI
+# -------------------------------
+st.markdown("## Key Performance Indicators")
+
+col1, col2, col3, col4 = st.columns(4)
 
 with col1:
     st.markdown(f"""
     <div class="kpi-container">
         <div class="kpi-label">Total Penjualan</div>
         <div class="kpi-value">${total_sales:,.0f}</div>
+        <div class="kpi-change">{format_change(sales_change)}</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -94,6 +135,7 @@ with col2:
     <div class="kpi-container">
         <div class="kpi-label">Total Transaksi</div>
         <div class="kpi-value">{total_transactions:,}</div>
+        <div class="kpi-change">{format_change(transactions_change)}</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -102,6 +144,7 @@ with col3:
     <div class="kpi-container">
         <div class="kpi-label">Total Profit</div>
         <div class="kpi-value">${total_profit:,.0f}</div>
+        <div class="kpi-change">{format_change(profit_change)}</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -110,66 +153,78 @@ with col4:
     <div class="kpi-container">
         <div class="kpi-label">Rata-rata Order</div>
         <div class="kpi-value">${avg_order_value:,.0f}</div>
+        <div class="kpi-change">{format_change(aov_change)}</div>
     </div>
     """, unsafe_allow_html=True)
 
-# Row 1: Tren Penjualan dan Profit Margin per Kategori untuk seluruh tahun
 col1, col2 = st.columns(2)
 
 with col1:
         st.markdown('<div class="chart-container">', unsafe_allow_html=True)
-        st.markdown("### Pertumbuhan Penjualan per Tahun")
-        
-        monthly_data = filtered_data.groupby(filtered_data['full_date'].dt.to_period('M')).agg({
-            'sales': 'sum',
-            'profit': 'sum'
+        st.markdown("### Tren Penjualan")
+        # Kelompokkan per bulan (atau bisa diganti harian/mingguan)
+        monthly_growth = filtered_data.groupby(filtered_data['full_date'].dt.to_period('M')).agg({
+            'sales': 'sum'
         }).reset_index()
-        monthly_data['full_date'] = monthly_data['full_date'].dt.to_timestamp()
-        
-        fig_trend = px.line(
-            monthly_data, 
-            x='full_date', 
-            y=['sales', 'profit'],
-            color_discrete_map={'sales': '#1e3c72', 'profit': '#ffd700'}
+
+        monthly_growth['full_date'] = monthly_growth['full_date'].dt.to_timestamp()
+
+        fig_growth = px.line(
+            monthly_growth,
+            x='full_date',
+            y='sales',
+            markers=True,
+            labels={'full_date': 'Tanggal', 'sales': 'Total Penjualan'},
+            color_discrete_sequence=['#1e3c72']
         )
-        fig_trend.update_layout(height=400, template='plotly_white')
-        st.plotly_chart(fig_trend, use_container_width=True)
+
+        fig_growth.update_layout(height=400, template='plotly_white')
+        st.plotly_chart(fig_growth, use_container_width=True)
+
         st.markdown('</div>', unsafe_allow_html=True)
     
 # Profit Margin per Tahun (seluruh tahun)
 with col2:
     st.markdown('<div class="chart-container">', unsafe_allow_html=True)
-    st.markdown("### Profit Margin per Tahun")
-    
-    # Grouping data berdasarkan tahun
-    yearly_data = filtered_data.groupby('year').agg({
+    st.markdown("### Profit Margin")
+
+    # Group data berdasarkan bulan dari kolom full_date
+    margin_data = filtered_data.copy()
+    margin_data['bulan'] = margin_data['full_date'].dt.to_period('M')
+
+    # Hitung total sales dan profit per bulan
+    margin_summary = margin_data.groupby('bulan').agg({
         'sales': 'sum',
         'profit': 'sum'
     }).reset_index()
-    
-    # Menghitung profit margin
-    yearly_data['profit_margin'] = (yearly_data['profit'] / yearly_data['sales'] * 100).round(2)
-    
-    # Membuat bar chart untuk profit margin per tahun
-    fig_margin_yearly = px.bar(
-        yearly_data,
-        x='year',
+
+    # Hitung profit margin
+    margin_summary['profit_margin'] = (margin_summary['profit'] / margin_summary['sales']) * 100
+    margin_summary['profit_margin'] = margin_summary['profit_margin'].round(2)
+
+    # Ubah period ke timestamp agar bisa di-plot
+    margin_summary['bulan'] = margin_summary['bulan'].dt.to_timestamp()
+
+    # Visualisasi bar chart
+    fig_margin_range = px.bar(
+        margin_summary,
+        x='bulan',
         y='profit_margin',
         color='profit_margin',
         color_continuous_scale=[[0, '#1e3c72'], [1, '#ffd700']],
         text='profit_margin'
     )
-    
-    fig_margin_yearly.update_traces(texttemplate='%{text:.1f}%', textposition='outside')
-    fig_margin_yearly.update_layout(
+
+    fig_margin_range.update_traces(texttemplate='%{text:.1f}%', textposition='outside')
+    fig_margin_range.update_layout(
         height=400,
-        xaxis_title="Tahun",
+        xaxis_title="Bulan",
         yaxis_title="Profit Margin (%)",
         template='plotly_white'
     )
-    
-    st.plotly_chart(fig_margin_yearly, use_container_width=True)
-    st.markdown('</div>', unsafe_allow_html=True)
+
+    st.plotly_chart(fig_margin_range, use_container_width=True)
+
 
 # Row 2: Regional Performance
 
