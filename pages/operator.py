@@ -280,7 +280,6 @@ with col2:
     st.plotly_chart(fig, use_container_width=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
-st.markdown('<div class="chart-container">', unsafe_allow_html=True)
 st.markdown("### Tren Penjualan Multi-Produk")
 
 # Ambil tanggal dari rentang filter
@@ -346,9 +345,6 @@ st.markdown('</div>', unsafe_allow_html=True)
 
 
 
-
-
-st.markdown('<div class="chart-container">', unsafe_allow_html=True)
 st.markdown("### Stok Barang (model)")
 query = """
 
